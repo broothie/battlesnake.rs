@@ -1,57 +1,61 @@
-#[macro_use]
-extern crate rocket;
-
 use std::collections::HashMap;
 
+use actix_web::{App, get, HttpResponse, HttpServer, middleware, post, Responder, web};
 use chrono::prelude::*;
-use rocket::{fairing::AdHoc, serde::json::Json};
 use serde::Serialize;
+use serde_json::json;
 
 mod game;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-#[launch]
-fn rocket() -> _ {
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
 	let port = option_env!("PORT")
 		.unwrap_or("8000")
 		.parse::<u16>()
 		.unwrap();
 
-	let cfg = rocket::config::Config::figment()
-		.merge(("port", port))
-		.merge(("address", "0.0.0.0"));
-
-	rocket::custom(cfg)
-		.mount("/", routes![index, start, mv, end])
-		.attach(AdHoc::on_response("logger", |req, res| Box::pin(async move {
-			println!("{} | {} | {} {}", Utc::now(), res.status(), req.method(), req.uri())
-		})))
+	HttpServer::new(|| {
+		App::new()
+			.wrap(middleware::Logger::default())
+			.service(index)
+			.service(start)
+			.service(mv)
+			.service(end)
+	})
+		.bind(("0.0.0.0", port))?
+		.run()
+		.await
 }
 
 #[get("/")]
-fn index() -> Json<HashMap<&'static str, &'static str>> {
-	Json(HashMap::from([
-		("apiversion", "1"),
-		("author", "broothie"),
-		("color", "#888888"),
-		("head", "tongue"),
-		("tail", "block-bum"),
-		("version", VERSION),
-	]))
+async fn index() -> impl Responder {
+	web::Json(json!({
+		"apiversion": "1",
+		"author": "broothie",
+		"color": "#888888",
+		"head": "tongue",
+		"tail": "block-bum",
+		"version": VERSION,
+	}))
 }
 
 #[post("/start")]
-fn start() {}
+async fn start() -> impl Responder {
+	"start"
+}
 
-#[post("/move", data = "<state>")]
-fn mv(state: Json<game::State>) -> Json<game::Command> {
+#[post("/move")]
+async fn mv(state: web::Json<game::State>) -> HttpResponse {
 	let mv = state.decide().unwrap_or(game::Move::Up);
 	let command = game::Command { mv };
 	println!("turn {} {:?}", state.turn, command);
 
-	Json(command)
+	HttpResponse::Ok().json(command)
 }
 
 #[post("/end")]
-fn end() {}
+async fn end() -> impl Responder {
+	"end"
+}
