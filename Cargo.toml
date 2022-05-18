@@ -13,3 +13,4 @@ anyhow = "1.0.57"
 rand = "0.8.5"
 chrono = "0.4.19"
 actix-web = "4.0.0"
+clap = { version = "3.1.18", features = ["derive"] }

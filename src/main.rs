@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use actix_web::{App, get, HttpResponse, HttpServer, middleware, post, Responder, web};
 use chrono::prelude::*;
+use clap::Parser;
 use serde::Serialize;
 use serde_json::json;
 
@@ -9,12 +10,16 @@ mod game;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+#[derive(Parser)]
+#[clap(version)]
+struct Args {
+	#[clap(short, long, default_value_t = 8080)]
+	port: u16,
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-	let port = option_env!("PORT")
-		.unwrap_or("8000")
-		.parse::<u16>()
-		.unwrap();
+	let args = Args::parse();
 
 	HttpServer::new(|| {
 		App::new()
@@ -24,7 +29,7 @@ async fn main() -> std::io::Result<()> {
 			.service(mv)
 			.service(end)
 	})
-		.bind(("0.0.0.0", port))?
+		.bind(("0.0.0.0", args.port))?
 		.run()
 		.await
 }
