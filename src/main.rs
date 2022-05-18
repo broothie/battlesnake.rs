@@ -1,38 +1,44 @@
 #[macro_use]
 extern crate rocket;
 
-use rocket::serde::json::Json;
+use std::collections::HashMap;
+
+use chrono::prelude::*;
+use rocket::{fairing::AdHoc, serde::json::Json};
 use serde::Serialize;
 
 mod game;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-#[derive(Serialize)]
-struct Config {
-	apiversion: String,
-	author: String,
-	color: String,
-	head: String,
-	tail: String,
-	version: String,
-}
-
 #[launch]
 fn rocket() -> _ {
-	rocket::build().mount("/", routes![config, start, mv, end])
+	let port = option_env!("PORT")
+		.unwrap_or("8000")
+		.parse::<u16>()
+		.unwrap();
+
+	let cfg = rocket::config::Config::figment()
+		.merge(("port", port))
+		.merge(("address", "0.0.0.0"));
+
+	rocket::custom(cfg)
+		.mount("/", routes![index, start, mv, end])
+		.attach(AdHoc::on_response("logger", |req, res| Box::pin(async move {
+			println!("{} | {} | {} {}", Utc::now(), res.status(), req.method(), req.uri())
+		})))
 }
 
 #[get("/")]
-fn config() -> Json<Config> {
-	Json(Config {
-		apiversion: "1".to_string(),
-		author: "broothie".to_string(),
-		color: "#888888".to_string(),
-		head: "tongue".to_string(),
-		tail: "block-bum".to_string(),
-		version: VERSION.to_string(),
-	})
+fn index() -> Json<HashMap<&'static str, &'static str>> {
+	Json(HashMap::from([
+		("apiversion", "1"),
+		("author", "broothie"),
+		("color", "#888888"),
+		("head", "tongue"),
+		("tail", "block-bum"),
+		("version", VERSION),
+	]))
 }
 
 #[post("/start")]
