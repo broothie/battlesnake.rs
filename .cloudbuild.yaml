@@ -1,0 +1,5 @@
+timeout: 3600s
+
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/github.com/broothie/battlesnake.rs:$COMMIT_SHA', '.']
