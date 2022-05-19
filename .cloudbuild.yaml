@@ -7,5 +7,9 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/github.com/broothie/battlesnake.rs:$COMMIT_SHA']
     
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:385.0.0'
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
     args: ['run', 'deploy', 'battlesnake-rs', '--image', 'gcr.io/$PROJECT_ID/github.com/broothie/battlesnake.rs:$COMMIT_SHA', '--region', 'us-central1']
+
+images:
+  - 'gcr.io/$PROJECT_ID/github.com/broothie/battlesnake.rs:$COMMIT_SHA'
