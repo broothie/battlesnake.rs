@@ -48,6 +48,12 @@ impl State {
                     moves = intersection;
                 }
             }
+        } else if let Some(kill_moves) = self.kill_moves() {
+            let intersection = vec_intersect(&moves, &kill_moves);
+            if !intersection.is_empty() {
+                println!("attempting kill: {:?}", intersection);
+                moves = intersection;
+            }
         }
 
         if moves.is_empty() {
@@ -71,6 +77,37 @@ impl State {
                     .snakes
                     .iter()
                     .filter(|snake| snake.length() >= self.you.length())
+                    .any(|snake| point == &snake.head)
+            })
+            .peekable()
+            .peek()
+            .is_some()
+    }
+
+    fn kill_moves(&self) -> Option<Vec<Move>> {
+        let moves: Vec<Move> = Move::all()
+            .into_iter()
+            .filter(|mv| self.kill_chance(&self.you.head.shift(mv)))
+            .collect();
+
+        if moves.is_empty() {
+            None
+        } else {
+            Some(moves)
+        }
+    }
+
+    fn kill_chance(&self, point: &Point) -> bool {
+        Move::all()
+            .iter()
+            .map(|mv| point.shift(mv))
+            .filter(|point| self.board.in_bounds(point))
+            .filter(|point| point != &self.you.head)
+            .filter(|point| {
+                self.board
+                    .snakes
+                    .iter()
+                    .filter(|snake| snake.length() < self.you.length())
                     .any(|snake| point == &snake.head)
             })
             .peekable()
