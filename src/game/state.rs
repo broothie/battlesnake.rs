@@ -31,7 +31,7 @@ impl State {
                     .board
                     .snakes
                     .iter()
-                    .any(|snake| snake.at(&self.you.head.shift(mv), true))
+                    .any(|snake| snake.at(&self.you.head.shift(mv), snake != &self.you))
             })
             // Remove threatened moves
             .filter(|mv| !self.threatened(&self.you.head.shift(mv)))

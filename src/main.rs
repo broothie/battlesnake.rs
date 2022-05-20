@@ -6,17 +6,21 @@ mod game;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 #[clap(version)]
-struct Args {
+struct Config {
     #[clap(short, long, default_value_t = 8080)]
     port: u16,
+
+    #[clap(long, default_value_t = 1.5)]
+    food_coefficient: f32,
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let args = Args::parse();
+    let config = Config::parse();
 
+    println!("{:?}", config);
     HttpServer::new(|| {
         App::new()
             .wrap(middleware::Logger::default())
@@ -25,7 +29,7 @@ async fn main() -> std::io::Result<()> {
             .service(mv)
             .service(end)
     })
-    .bind(("0.0.0.0", args.port))?
+    .bind(("0.0.0.0", config.port))?
     .run()
     .await
 }
