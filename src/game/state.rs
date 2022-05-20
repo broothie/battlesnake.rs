@@ -28,7 +28,7 @@ impl State {
                 !self.board.snakes.iter().any(|snake| {
                     snake.at(
                         &self.you.head.shift(mv),
-                        snake != &self.you || self.you.length() > 2,
+                        snake != &self.you || self.turn > 2,
                     )
                 })
             })
