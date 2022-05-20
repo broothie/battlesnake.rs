@@ -71,7 +71,13 @@ impl State {
             .map(|mv| point.shift(mv))
             .filter(|point| self.board.in_bounds(point))
             .filter(|point| point != &self.you.head)
-            .filter(|point| self.board.snakes.iter().any(|snake| point == &snake.head))
+            .filter(|point| {
+                self.board
+                    .snakes
+                    .iter()
+                    .filter(|snake| snake.length >= self.you.length)
+                    .any(|snake| point == &snake.head)
+            })
             .peekable()
             .peek()
             .is_some()

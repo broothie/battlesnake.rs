@@ -7,6 +7,7 @@ pub struct Snake {
     pub health: u16,
     pub body: Vec<Point>,
     pub head: Point,
+    pub length: u16,
     // shout: String,
 }
 
