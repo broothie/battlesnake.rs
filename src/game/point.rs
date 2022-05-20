@@ -1,7 +1,7 @@
 use super::mv::Move;
 use serde::Deserialize;
 
-#[derive(Deserialize, Debug, PartialEq, Copy, Clone)]
+#[derive(Deserialize, Debug, PartialEq, Eq, Hash, Copy, Clone)]
 pub struct Point {
     pub x: i16,
     pub y: i16,

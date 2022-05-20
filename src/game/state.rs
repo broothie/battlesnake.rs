@@ -42,11 +42,7 @@ impl State {
             if distance as f32 > self.you.health as f32 * food_coefficient {
                 let towards = self.you.head.towards(closest_food);
 
-                let move_set: HashSet<Move> = HashSet::from_iter(moves.iter().cloned());
-                let towards_set: HashSet<Move> = HashSet::from_iter(towards.iter().cloned());
-
-                let intersection: Vec<Move> =
-                    move_set.intersection(&towards_set).cloned().collect();
+                let intersection = vec_intersect(&moves, &towards);
                 if !intersection.is_empty() {
                     println!("moving towards food: {:?}", intersection);
                     moves = intersection;
@@ -81,6 +77,16 @@ impl State {
             .peek()
             .is_some()
     }
+}
+
+fn vec_intersect<T>(a: &Vec<T>, b: &Vec<T>) -> Vec<T>
+where
+    T: Clone + Eq + std::hash::Hash,
+{
+    let a_set: HashSet<T> = HashSet::from_iter(a.iter().cloned());
+    let b_set: HashSet<T> = HashSet::from_iter(b.iter().cloned());
+
+    a_set.intersection(&b_set).cloned().collect()
 }
 
 #[cfg(test)]
