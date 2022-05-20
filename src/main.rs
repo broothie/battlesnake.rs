@@ -1,7 +1,6 @@
 use actix_web::{get, middleware, post, web, App, HttpServer, Responder};
 use clap::Parser;
 use serde_json::json;
-
 mod game;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -18,6 +17,8 @@ struct Config {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+
     let config = Config::parse();
 
     println!("{:?}", config);
@@ -55,6 +56,7 @@ async fn start() -> impl Responder {
 async fn mv(state: web::Json<game::State>) -> impl Responder {
     let mv = state.decide().unwrap_or(game::Move::Up);
 
+    println!("turn {}: {:?}", state.turn, mv);
     web::Json(json!({ "move": mv }))
 }
 
