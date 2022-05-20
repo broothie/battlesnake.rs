@@ -27,11 +27,12 @@ impl State {
             .filter(|mv| self.board.in_bounds(&self.you.head.shift(mv)))
             // Remove collision moves
             .filter(|mv| {
-                !self
-                    .board
-                    .snakes
-                    .iter()
-                    .any(|snake| snake.at(&self.you.head.shift(mv), snake != &self.you))
+                !self.board.snakes.iter().any(|snake| {
+                    snake.at(
+                        &self.you.head.shift(mv),
+                        snake != &self.you || self.you.length() > 2,
+                    )
+                })
             })
             // Remove threatened moves
             .filter(|mv| !self.threatened(&self.you.head.shift(mv)))
@@ -75,7 +76,7 @@ impl State {
                 self.board
                     .snakes
                     .iter()
-                    .filter(|snake| snake.length >= self.you.length)
+                    .filter(|snake| snake.length() >= self.you.length())
                     .any(|snake| point == &snake.head)
             })
             .peekable()
@@ -93,19 +94,14 @@ mod tests {
         let you = Snake {
             id: "you".to_string(),
             health: 0,
-            body: vec![
-                Point::new(7, 3),
-                Point::new(8, 3),
-                Point::new(8, 4),
-                Point::new(8, 5),
-            ],
+            body: vec![Point::new(7, 3), Point::new(8, 3), Point::new(8, 4)],
             head: Point::new(7, 3),
         };
 
         let snakes = vec![
             you.clone(),
             Snake {
-                id: "a".to_string(),
+                id: "Big A".to_string(),
                 health: 0,
                 body: vec![
                     Point::new(0, 0),
@@ -116,10 +112,16 @@ mod tests {
                 head: Point::new(0, 0),
             },
             Snake {
-                id: "b".to_string(),
+                id: "Same B".to_string(),
                 health: 0,
                 body: vec![Point::new(3, 2), Point::new(3, 3), Point::new(3, 4)],
                 head: Point::new(3, 2),
+            },
+            Snake {
+                id: "Lil C".to_string(),
+                health: 0,
+                body: vec![Point::new(2, 8), Point::new(2, 9)],
+                head: Point::new(2, 8),
             },
         ];
 
@@ -136,18 +138,23 @@ mod tests {
             board,
         };
 
-        // Corner
-        assert_eq!(state.threatened(&Point::new(1, 0)), true);
-
-        // Around head
-        assert_eq!(state.threatened(&Point::new(2, 2)), true);
-        assert_eq!(state.threatened(&Point::new(3, 1)), true);
-        assert_eq!(state.threatened(&Point::new(4, 2)), true);
-
         // You
         assert_eq!(state.threatened(&Point::new(6, 3)), false);
         assert_eq!(state.threatened(&Point::new(7, 2)), false);
         assert_eq!(state.threatened(&Point::new(7, 4)), false);
+
+        // Big A, corner
+        assert_eq!(state.threatened(&Point::new(1, 0)), true);
+
+        // Same B
+        assert_eq!(state.threatened(&Point::new(2, 2)), true);
+        assert_eq!(state.threatened(&Point::new(3, 1)), true);
+        assert_eq!(state.threatened(&Point::new(4, 2)), true);
+
+        // Lil C
+        assert_eq!(state.threatened(&Point::new(1, 8)), false);
+        assert_eq!(state.threatened(&Point::new(2, 7)), false);
+        assert_eq!(state.threatened(&Point::new(3, 8)), false);
 
         // Elsewhere
         assert_eq!(state.threatened(&Point::new(4, 4)), false);

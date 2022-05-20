@@ -7,11 +7,14 @@ pub struct Snake {
     pub health: u16,
     pub body: Vec<Point>,
     pub head: Point,
-    pub length: u16,
     // shout: String,
 }
 
 impl Snake {
+    pub fn length(&self) -> usize {
+        self.body.len()
+    }
+    
     pub fn tail(&self) -> &Point {
         self.body.last().expect("snake with no tail")
     }

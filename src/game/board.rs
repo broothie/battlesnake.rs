@@ -3,7 +3,7 @@ use super::snake::Snake;
 use colored::*;
 use serde::Deserialize;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Board {
     pub height: i16,
     pub width: i16,
