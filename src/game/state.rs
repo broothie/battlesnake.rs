@@ -8,8 +8,6 @@ use rand::{seq::SliceRandom, thread_rng};
 use serde::Deserialize;
 use std::collections::HashSet;
 
-const FOOD_COEFFICIENT: f32 = 1.5;
-
 #[derive(Deserialize, Debug)]
 pub struct State {
     pub turn: u16,
@@ -18,7 +16,7 @@ pub struct State {
 }
 
 impl State {
-    pub fn decide(&self) -> Result<Move> {
+    pub fn decide(&self, food_coefficient: f32) -> Result<Move> {
         let mut moves = Move::all();
 
         moves = moves
@@ -41,7 +39,7 @@ impl State {
         println!("valid moves: {:?}", moves);
         if let Some(closest_food) = self.board.closest_food(&self.you.head) {
             let distance = closest_food.distance(&self.you.head);
-            if distance as f32 > self.you.health as f32 * FOOD_COEFFICIENT {
+            if distance as f32 > self.you.health as f32 * food_coefficient {
                 let towards = self.you.head.towards(closest_food);
 
                 let move_set: HashSet<Move> = HashSet::from_iter(moves.iter().cloned());
