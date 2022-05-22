@@ -39,20 +39,25 @@ impl State {
         // Compute pockets
         let pocket_sizes = self.board.pocket_sizes();
 
-        // Remove small pockets
-        let pocket_moves: Vec<Move> = moves
+        let size_pairs: Vec<(&Move, usize)> = moves
             .iter()
-            .filter(|mv| {
-                pocket_sizes
-                    .get(&self.you.head.shift(mv))
-                    .unwrap_or(&0usize)
-                    > &(self.you.length() as usize)
+            .map(|mv| {
+                (
+                    mv,
+                    *pocket_sizes
+                        .get(&self.you.head.shift(&mv))
+                        .unwrap_or(&0usize),
+                )
             })
-            .cloned()
             .collect();
 
-        if !pocket_moves.is_empty() {
-            moves = pocket_moves;
+        let largest = size_pairs.iter().map(|(_, size)| size).max();
+        if let Some(largest) = largest {
+            moves = size_pairs
+                .iter()
+                .filter(|(_, size)| size == largest)
+                .map(|(mv, _)| **mv)
+                .collect();
         }
 
         println!("valid moves: {:?}", moves);
