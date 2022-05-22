@@ -1,7 +1,11 @@
-use super::point::Point;
-use super::snake::Snake;
+use std::collections::{HashMap, HashSet};
+
 use colored::*;
 use serde::Deserialize;
+
+use super::mv::Move;
+use super::point::Point;
+use super::snake::Snake;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Board {
@@ -28,6 +32,56 @@ impl Board {
         self.food
             .iter()
             .min_by(|a, b| point.distance(a).cmp(&point.distance(b)))
+    }
+
+    pub fn pocket_sizes(&self) -> HashMap<Point, usize> {
+        let mut checked: HashSet<Point> = HashSet::new();
+        let mut pockets: Vec<HashSet<Point>> = Vec::new();
+
+        for x in 0..self.width {
+            for y in 0..self.height {
+                let point = Point::new(x, y);
+                if checked.contains(&point) {
+                    continue;
+                }
+
+                checked.insert(point);
+
+                let pocket = self.pocket_at(&point);
+                checked.extend(pocket.iter());
+                pockets.push(pocket);
+            }
+        }
+
+        let mut sizes: HashMap<Point, usize> = HashMap::new();
+        for pocket in pockets {
+            for point in pocket.iter() {
+                sizes.insert(point.clone(), pocket.len());
+            }
+        }
+
+        sizes
+    }
+
+    fn pocket_at<'a>(&'a self, point: &Point) -> HashSet<Point> {
+        let mut pocket = HashSet::from([point.clone()]);
+        let mut queue = vec![point.clone()];
+
+        while let Some(point) = queue.pop() {
+            let neighbors: Vec<Point> = Move::all()
+                .iter()
+                .map(|mv| point.shift(mv))
+                .filter(|point| self.in_bounds(point))
+                .filter(|point| self.snake_at(point).is_some())
+                .collect();
+
+            for neighbor in neighbors {
+                pocket.insert(neighbor);
+                queue.push(neighbor.clone());
+            }
+        }
+
+        pocket
     }
 }
 
