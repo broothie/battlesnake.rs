@@ -16,7 +16,7 @@ pub struct State {
 }
 
 impl State {
-    pub fn decide(&self, food_coefficient: f32) -> Result<Move> {
+    pub fn decide(&self, hunger_coefficient: f32) -> Result<Move> {
         let mut moves = Move::all();
 
         moves = moves
@@ -36,10 +36,29 @@ impl State {
             .filter(|mv| !self.threatened(&self.you.head.shift(mv)))
             .collect();
 
+        // Compute pockets
+        let pocket_sizes = self.board.pocket_sizes();
+
+        // Remove small pockets
+        let pocket_moves: Vec<Move> = moves
+            .iter()
+            .filter(|mv| {
+                pocket_sizes
+                    .get(&self.you.head.shift(mv))
+                    .unwrap_or(&0usize)
+                    > &(self.you.length() as usize)
+            })
+            .cloned()
+            .collect();
+
+        if !pocket_moves.is_empty() {
+            moves = pocket_moves;
+        }
+
         println!("valid moves: {:?}", moves);
         if let Some(closest_food) = self.board.closest_food(&self.you.head) {
             let distance = closest_food.distance(&self.you.head);
-            if distance as f32 > self.you.health as f32 * food_coefficient {
+            if self.need_food(distance, hunger_coefficient) || self.compete_for_biggest() {
                 let towards = self.you.head.towards(closest_food);
 
                 let intersection = vec_intersect(&moves, &towards);
@@ -64,6 +83,16 @@ impl State {
         let mv = moves.get(0).expect("failed to get move");
 
         Ok(*mv)
+    }
+
+    fn need_food(&self, distance: i16, hunger_coefficient: f32) -> bool {
+        distance as f32 > self.you.health as f32 * hunger_coefficient
+    }
+
+    fn compete_for_biggest(&self) -> bool {
+        let biggest = self.board.snakes.iter().map(|snake| snake.length()).max();
+
+        biggest.is_some() && self.you.length() <= biggest.unwrap()
     }
 
     fn threatened(&self, point: &Point) -> bool {

@@ -7,6 +7,8 @@ use super::mv::Move;
 use super::point::Point;
 use super::snake::Snake;
 
+const COLORS: [&str; 5] = ["blue", "red", "yellow", "purple", "cyan"];
+
 #[derive(Deserialize, Debug, Clone)]
 pub struct Board {
     pub height: i16,
@@ -47,9 +49,10 @@ impl Board {
 
                 checked.insert(point);
 
-                let pocket = self.pocket_at(&point);
-                checked.extend(pocket.iter());
-                pockets.push(pocket);
+                if let Some(pocket) = self.pocket_at(&point) {
+                    checked.extend(pocket.iter());
+                    pockets.push(pocket);
+                }
             }
         }
 
@@ -63,29 +66,31 @@ impl Board {
         sizes
     }
 
-    fn pocket_at<'a>(&'a self, point: &Point) -> HashSet<Point> {
-        let mut pocket = HashSet::from([point.clone()]);
+    fn pocket_at(&self, point: &Point) -> Option<HashSet<Point>> {
         let mut queue = vec![point.clone()];
 
+        let mut pocket = HashSet::new();
         while let Some(point) = queue.pop() {
-            let neighbors: Vec<Point> = Move::all()
+            if pocket.contains(&point) || !self.in_bounds(&point) || self.snake_at(&point).is_some()
+            {
+                continue;
+            }
+
+            pocket.insert(point);
+
+            Move::all()
                 .iter()
                 .map(|mv| point.shift(mv))
-                .filter(|point| self.in_bounds(point))
-                .filter(|point| self.snake_at(point).is_some())
-                .collect();
-
-            for neighbor in neighbors {
-                pocket.insert(neighbor);
-                queue.push(neighbor.clone());
-            }
+                .for_each(|neighbor| queue.push(neighbor));
         }
 
-        pocket
+        if pocket.is_empty() {
+            None
+        } else {
+            Some(pocket)
+        }
     }
 }
-
-const COLORS: [&str; 5] = ["blue", "red", "yellow", "purple", "cyan"];
 
 impl ToString for Board {
     fn to_string(&self) -> String {
@@ -173,6 +178,112 @@ mod tests {
         assert_eq!(
             board.closest_food(&Point::new(4, 4)),
             Some(&Point::new(1, 5))
+        );
+    }
+
+    #[test]
+    fn pocket_at() {
+        let board = Board {
+            height: 5,
+            width: 5,
+            food: vec![],
+            snakes: vec![
+                Snake {
+                    id: "a".to_string(),
+                    health: 10,
+                    body: vec![
+                        Point::new(3, 4),
+                        Point::new(3, 3),
+                        Point::new(3, 2),
+                        Point::new(2, 2),
+                        Point::new(1, 2),
+                        Point::new(1, 1),
+                        Point::new(1, 0),
+                    ],
+                    head: Point::new(3, 4),
+                },
+                Snake {
+                    id: "b".to_string(),
+                    health: 10,
+                    body: vec![Point::new(4, 2), Point::new(4, 1)],
+                    head: Point::new(4, 2),
+                },
+            ],
+        };
+
+        assert_eq!(
+            board.pocket_at(&Point::new(0, 0)).expect("must be some"),
+            HashSet::from([
+                Point::new(0, 0),
+                Point::new(0, 1),
+                Point::new(0, 2),
+                Point::new(0, 3),
+                Point::new(0, 4),
+                Point::new(1, 3),
+                Point::new(1, 4),
+                Point::new(2, 3),
+                Point::new(2, 4),
+            ])
+        );
+
+        assert_eq!(
+            board.pocket_at(&Point::new(4, 0)).expect("must be some"),
+            HashSet::from([
+                Point::new(2, 0),
+                Point::new(2, 1),
+                Point::new(3, 0),
+                Point::new(3, 1),
+                Point::new(4, 0),
+            ])
+        );
+
+        assert_eq!(
+            board.pocket_at(&Point::new(4, 4)).expect("must be some"),
+            HashSet::from([Point::new(4, 3), Point::new(4, 4)])
+        );
+
+        assert!(board.pocket_at(&Point::new(1, 1)).is_none());
+    }
+
+    #[test]
+    fn pocket_sizes() {
+        let board = Board {
+            height: 5,
+            width: 5,
+            food: vec![],
+            snakes: vec![
+                Snake {
+                    id: "a".to_string(),
+                    health: 10,
+                    body: vec![
+                        Point::new(3, 4),
+                        Point::new(3, 3),
+                        Point::new(3, 2),
+                        Point::new(2, 2),
+                        Point::new(1, 2),
+                        Point::new(1, 1),
+                        Point::new(1, 0),
+                    ],
+                    head: Point::new(3, 4),
+                },
+                Snake {
+                    id: "b".to_string(),
+                    health: 10,
+                    body: vec![Point::new(4, 2), Point::new(4, 1)],
+                    head: Point::new(4, 2),
+                },
+            ],
+        };
+
+        let pocket_sizes = board.pocket_sizes();
+
+        assert_eq!(
+            pocket_sizes.get(&Point::new(0, 0)).unwrap_or(&0usize),
+            &9usize
+        );
+        assert_eq!(
+            pocket_sizes.get(&Point::new(1, 1)).unwrap_or(&0usize),
+            &0usize
         );
     }
 }

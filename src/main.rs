@@ -12,7 +12,7 @@ struct Config {
     port: u16,
 
     #[clap(long, default_value_t = 1.5)]
-    food_coefficient: f32,
+    hunger_coefficient: f32,
 }
 
 #[actix_web::main]
@@ -57,7 +57,7 @@ async fn start() -> String {
 #[post("/move")]
 async fn mv(data: web::Data<Config>, state: web::Json<game::State>) -> web::Json<Value> {
     let mv = state
-        .decide(data.food_coefficient)
+        .decide(data.hunger_coefficient)
         .unwrap_or(game::Move::Up);
 
     println!("turn {}: {:?}", state.turn, mv);
