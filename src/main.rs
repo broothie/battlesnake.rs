@@ -42,7 +42,7 @@ async fn index() -> web::Json<Value> {
     web::Json(json!({
         "apiversion": "1",
         "author": "broothie",
-        "color": "#888888",
+        "color": "#DB5527",
         "head": "tongue",
         "tail": "block-bum",
         "version": VERSION,
