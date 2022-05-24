@@ -92,7 +92,13 @@ impl State {
     }
 
     fn compete_for_biggest(&self) -> bool {
-        let biggest = self.board.snakes.iter().map(|snake| snake.length()).max();
+        let biggest = self
+            .board
+            .snakes
+            .iter()
+            .filter(|snake| *snake != &self.you)
+            .map(|snake| snake.length())
+            .max();
 
         biggest.is_some() && self.you.length() <= biggest.unwrap()
     }
