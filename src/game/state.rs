@@ -6,7 +6,6 @@ use super::snake::Snake;
 use anyhow::Result;
 use rand::{seq::SliceRandom, thread_rng};
 use serde::Deserialize;
-use std::collections::HashSet;
 
 #[derive(Deserialize, Debug)]
 pub struct State {
@@ -16,74 +15,72 @@ pub struct State {
 }
 
 impl State {
+    fn process<F>(&self, process: &str, moves: Vec<Move>, f: F) -> Vec<Move>
+    where
+        F: Fn(Point) -> bool,
+    {
+        let before = moves.clone();
+
+        let after: Vec<Move> = moves
+            .into_iter()
+            .filter(|mv| f(self.you.head.shift(&mv)))
+            .collect();
+
+        if after.is_empty() {
+            println!("{}: skipping because empty", process);
+            before
+        } else if before == after {
+            println!("{}: no changes", process);
+            after
+        } else {
+            println!("{}: {:?} -> {:?}", process, before, after);
+            after
+        }
+    }
+
     pub fn decide(&self, hunger_coefficient: f32) -> Result<Move> {
         let mut moves = Move::all();
 
-        moves = moves
-            .into_iter()
-            // Remove out of bounds moves
-            .filter(|mv| self.board.in_bounds(&self.you.head.shift(mv)))
-            // Remove collision moves
-            .filter(|mv| {
-                !self.board.snakes.iter().any(|snake| {
-                    snake.at(
-                        &self.you.head.shift(mv),
-                        snake != &self.you || self.turn > 2,
-                    )
-                })
-            })
-            // Remove threatened moves
-            .filter(|mv| !self.threatened(&self.you.head.shift(mv)))
-            .collect();
+        moves = self.process("in bounds", moves, |point| self.board.in_bounds(&point));
+        moves = self.process("snake collisions", moves, |point| {
+            !self
+                .board
+                .snakes
+                .iter()
+                .any(|snake| snake.at(&point, snake != &self.you || self.turn > 2))
+        });
 
-        // Compute pockets
+        moves = self.process("threatened", moves, |point| !self.threatened(&point));
+
         let pocket_sizes = self.board.pocket_sizes();
-
-        let size_pairs: Vec<(&Move, usize)> = moves
+        let largest = moves
             .iter()
             .map(|mv| {
-                (
-                    mv,
-                    *pocket_sizes
-                        .get(&self.you.head.shift(&mv))
-                        .unwrap_or(&0usize),
-                )
+                pocket_sizes
+                    .get(&self.you.head.shift(&mv))
+                    .unwrap_or(&0usize)
             })
-            .collect();
+            .max();
 
-        let largest = size_pairs.iter().map(|(_, size)| size).max();
         if let Some(largest) = largest {
-            moves = size_pairs
-                .iter()
-                .filter(|(_, size)| size == largest)
-                .map(|(mv, _)| **mv)
-                .collect();
+            moves = self.process("select largest pocket", moves, |point| {
+                pocket_sizes.get(&point).unwrap_or(&0usize) == largest
+            });
         }
 
-        println!("valid moves: {:?}", moves);
         if let Some(closest_food) = self.board.closest_food(&self.you.head) {
             let distance = closest_food.distance(&self.you.head);
+
             if self.need_food(distance, hunger_coefficient) || self.compete_for_biggest() {
-                let towards = self.you.head.towards(closest_food);
-
-                let intersection = vec_intersect(&moves, &towards);
-                if !intersection.is_empty() {
-                    println!("moving towards food: {:?}", intersection);
-                    moves = intersection;
-                }
-            }
-        } else if let Some(kill_moves) = self.kill_moves() {
-            let intersection = vec_intersect(&moves, &kill_moves);
-            if !intersection.is_empty() {
-                println!("attempting kill: {:?}", intersection);
-                moves = intersection;
+                moves = self.process("food moves", moves, |point| {
+                    closest_food.distance(&point) < distance
+                });
             }
         }
 
-        if moves.is_empty() {
-            moves = Move::all();
-        }
+        moves = self.process("kill moves", moves, |point| self.kill_chance(&point));
 
+        println!("selecting move from {:?}", moves);
         moves.shuffle(&mut thread_rng());
         let mv = moves.get(0).expect("failed to get move");
 
@@ -118,19 +115,6 @@ impl State {
             .is_some()
     }
 
-    fn kill_moves(&self) -> Option<Vec<Move>> {
-        let moves: Vec<Move> = Move::all()
-            .into_iter()
-            .filter(|mv| self.kill_chance(&self.you.head.shift(mv)))
-            .collect();
-
-        if moves.is_empty() {
-            None
-        } else {
-            Some(moves)
-        }
-    }
-
     fn kill_chance(&self, point: &Point) -> bool {
         Move::all()
             .iter()
@@ -148,16 +132,6 @@ impl State {
             .peek()
             .is_some()
     }
-}
-
-fn vec_intersect<T>(a: &Vec<T>, b: &Vec<T>) -> Vec<T>
-where
-    T: Clone + Eq + std::hash::Hash,
-{
-    let a_set: HashSet<T> = HashSet::from_iter(a.iter().cloned());
-    let b_set: HashSet<T> = HashSet::from_iter(b.iter().cloned());
-
-    a_set.intersection(&b_set).cloned().collect()
 }
 
 #[cfg(test)]
