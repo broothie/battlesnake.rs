@@ -116,10 +116,19 @@ impl State {
             });
         }
 
+        moves = self.process("circle", moves, |point| {
+            let tail = self.you.tail();
+            let current_distance = self.you.head.distance(&tail);
+            let new_distance = point.distance(&tail);
+
+            new_distance < current_distance
+        });
+
         println!(
             "game {}, turn {}, selecting move from {:?}",
             self.game.id, self.turn, moves
         );
+
         moves.shuffle(&mut thread_rng());
         let mv = moves.get(0).expect("failed to get move");
 
