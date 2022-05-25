@@ -94,6 +94,18 @@ impl State {
         }
 
         moves = self.process("kill moves", moves, |point| self.kill_chance(&point));
+        moves = self.process("seek kill", moves, |point| {
+            self.board
+                .snakes
+                .iter()
+                .filter(|snake| snake.length() < self.you.length())
+                .any(|snake| {
+                    let current_distance = self.you.head.distance(&snake.head);
+                    let new_distance = point.distance(&snake.head);
+
+                    new_distance < current_distance
+                })
+        });
 
         println!(
             "game {}, turn {}, selecting move from {:?}",
