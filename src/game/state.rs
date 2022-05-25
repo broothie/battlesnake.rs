@@ -77,9 +77,9 @@ impl State {
             })
             .max();
 
-        if let Some(largest) = largest {
+        if let Some(size) = largest {
             moves = self.process("select largest pocket", moves, |point| {
-                pocket_sizes.get(&point).unwrap_or(&0usize) == largest
+                pocket_sizes.get(&point).unwrap_or(&0usize) == size
             });
         }
 
@@ -94,18 +94,27 @@ impl State {
         }
 
         moves = self.process("kill moves", moves, |point| self.kill_chance(&point));
-        moves = self.process("seek kill", moves, |point| {
-            self.board
-                .snakes
-                .iter()
-                .filter(|snake| snake.length() < self.you.length())
-                .any(|snake| {
-                    let current_distance = self.you.head.distance(&snake.head);
-                    let new_distance = point.distance(&snake.head);
 
-                    new_distance < current_distance
-                })
-        });
+        let closest_smaller_snake = self
+            .board
+            .snakes
+            .iter()
+            .filter(|snake| snake.length() < self.you.length())
+            .min_by(|snake_a, snake_b| {
+                let distance_a = self.you.head.distance(&snake_a.head);
+                let distance_b = self.you.head.distance(&snake_b.head);
+
+                distance_a.cmp(&distance_b)
+            });
+
+        if let Some(snake) = closest_smaller_snake {
+            moves = self.process("seek kill", moves, |point| {
+                let current_distance = self.you.head.distance(&snake.head);
+                let new_distance = point.distance(&snake.head);
+
+                new_distance < current_distance
+            });
+        }
 
         println!(
             "game {}, turn {}, selecting move from {:?}",
