@@ -56,11 +56,13 @@ async fn start() -> String {
 
 #[post("/move")]
 async fn mv(data: web::Data<Config>, state: web::Json<game::State>) -> web::Json<Value> {
+    println!("turn {}: {:?}", state.turn, state.game);
+
     let mv = state
         .decide(data.hunger_coefficient)
         .unwrap_or(game::Move::Up);
 
-    println!("turn {}: {:?}", state.turn, mv);
+    println!("game {}, turn {}: {:?}", state.game.id, state.turn, mv);
     web::Json(json!({ "move": mv }))
 }
 

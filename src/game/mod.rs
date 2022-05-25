@@ -1,4 +1,5 @@
 mod board;
+mod game;
 mod mv;
 mod point;
 mod snake;

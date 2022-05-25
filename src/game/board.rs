@@ -14,6 +14,7 @@ pub struct Board {
     pub height: i16,
     pub width: i16,
     pub food: Vec<Point>,
+    pub hazards: Vec<Point>,
     pub snakes: Vec<Snake>,
 }
 
@@ -24,6 +25,10 @@ impl Board {
 
     pub fn food_at(&self, point: &Point) -> bool {
         self.food.contains(point)
+    }
+
+    pub fn hazard_at(&self, point: &Point) -> bool {
+        self.hazards.contains(point)
     }
 
     pub fn snake_at(&self, point: &Point) -> Option<&Snake> {
@@ -146,6 +151,7 @@ mod tests {
             height: 10,
             width: 10,
             food: vec![],
+            hazards: vec![],
             snakes: vec![],
         };
 
@@ -162,6 +168,7 @@ mod tests {
             height: 10,
             width: 10,
             food: vec![Point::new(1, 2), Point::new(1, 5)],
+            hazards: vec![],
             snakes: vec![],
         };
 
@@ -187,6 +194,7 @@ mod tests {
             height: 5,
             width: 5,
             food: vec![],
+            hazards: vec![],
             snakes: vec![
                 Snake {
                     id: "a".to_string(),
@@ -251,6 +259,7 @@ mod tests {
             height: 5,
             width: 5,
             food: vec![],
+            hazards: vec![],
             snakes: vec![
                 Snake {
                     id: "a".to_string(),

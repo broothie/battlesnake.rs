@@ -1,4 +1,5 @@
 use super::board::Board;
+use super::game::Game;
 use super::mv::Move;
 use super::point::Point;
 use super::snake::Snake;
@@ -9,6 +10,7 @@ use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
 pub struct State {
+    pub game: Game,
     pub turn: u16,
     pub board: Board,
     pub you: Snake,
@@ -27,13 +29,22 @@ impl State {
             .collect();
 
         if after.is_empty() {
-            println!("{}: skipping because empty", process);
+            println!(
+                "game {}, turn {}, {}: skipping because empty",
+                self.game.id, self.turn, process
+            );
             before
         } else if before == after {
-            println!("{}: no changes", process);
+            println!(
+                "game {}, turn {}, {}: no changes",
+                self.game.id, self.turn, process
+            );
             after
         } else {
-            println!("{}: {:?} -> {:?}", process, before, after);
+            println!(
+                "game {}, turn {}, {}: {:?} -> {:?}",
+                self.game.id, self.turn, process, before, after
+            );
             after
         }
     }
@@ -51,6 +62,10 @@ impl State {
         });
 
         moves = self.process("threatened", moves, |point| !self.threatened(&point));
+
+        if self.game.ruleset.name == "royale" {
+            moves = self.process("hazards", moves, |point| !self.board.hazard_at(&point));
+        }
 
         let pocket_sizes = self.board.pocket_sizes();
         let largest = moves
@@ -80,7 +95,10 @@ impl State {
 
         moves = self.process("kill moves", moves, |point| self.kill_chance(&point));
 
-        println!("selecting move from {:?}", moves);
+        println!(
+            "game {}, turn {}, selecting move from {:?}",
+            self.game.id, self.turn, moves
+        );
         moves.shuffle(&mut thread_rng());
         let mv = moves.get(0).expect("failed to get move");
 
@@ -142,6 +160,8 @@ impl State {
 
 #[cfg(test)]
 mod tests {
+    use crate::game::game::Ruleset;
+
     use super::*;
 
     #[test]
@@ -184,10 +204,17 @@ mod tests {
             height: 10,
             width: 10,
             food: vec![Point::new(7, 7)],
+            hazards: vec![],
             snakes,
         };
 
         let state = State {
+            game: Game {
+                id: "asdf".to_string(),
+                ruleset: Ruleset {
+                    name: "standard".to_string(),
+                },
+            },
             turn: 0,
             you: you.clone(),
             board,
