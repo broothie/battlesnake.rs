@@ -49,7 +49,7 @@ impl State {
         }
     }
 
-    pub fn decide(&self, hunger_coefficient: f32) -> Result<Move> {
+    pub fn decide(&self, hunger_coefficient: f32) -> Result<(Move, String)> {
         let mut moves = Move::all();
 
         moves = self.process("in bounds", moves, |point| self.board.in_bounds(&point));
@@ -102,7 +102,13 @@ impl State {
         moves.shuffle(&mut thread_rng());
         let mv = moves.get(0).expect("failed to get move");
 
-        Ok(*mv)
+        let shout = if self.board.food_at(&self.you.head.shift(mv)) {
+            "gulp"
+        } else {
+            ""
+        };
+
+        Ok((*mv, shout.to_string()))
     }
 
     fn need_food(&self, distance: i16, hunger_coefficient: f32) -> bool {
