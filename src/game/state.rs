@@ -133,7 +133,7 @@ impl State {
     }
 
     fn need_food(&self, distance: i16, hunger_coefficient: f32) -> bool {
-        distance as f32 > self.you.health as f32 * hunger_coefficient
+        self.you.health < 10 || distance as f32 > self.you.health as f32 * hunger_coefficient
     }
 
     fn compete_for_biggest(&self) -> bool {
