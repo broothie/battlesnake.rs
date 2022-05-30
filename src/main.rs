@@ -2,6 +2,7 @@ use actix_web::{get, middleware, post, web, App, HttpServer};
 use clap::Parser;
 use serde_json::{json, Value};
 mod game;
+mod heuristic;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -55,22 +56,28 @@ async fn start() -> String {
 }
 
 #[post("/move")]
-async fn mv(data: web::Data<Config>, state: web::Json<game::State>) -> web::Json<Value> {
+async fn mv(data: web::Data<Config>, state: web::Json<game::State>) -> web::Json<game::Command> {
     println!(
         "game {}, turn {}: {:?}",
         state.game.id, state.turn, state.game
     );
 
-    let (mv, shout) = state
+    let state = state.into_inner();
+    let heuristic = heuristic::Heuristic { state: state.clone() };
+
+    let command = heuristic
         .decide(data.hunger_coefficient)
-        .unwrap_or_else(|_| (game::Move::Up, "".to_string()));
+        .unwrap_or_else(|_| game::Command {
+            mv: game::Move::Up,
+            shout: "whoops!".to_string(),
+        });
 
     println!(
         "game {}, turn {}: {:?} '{}'",
-        state.game.id, state.turn, mv, shout
+        state.game.id, state.turn, command.mv, command.shout
     );
 
-    web::Json(json!({ "move": mv, "shout": shout }))
+    web::Json(command)
 }
 
 #[post("/end")]
