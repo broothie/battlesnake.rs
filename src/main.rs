@@ -3,6 +3,7 @@ use clap::Parser;
 use serde_json::{json, Value};
 mod game;
 mod heuristic;
+mod monte_carlo;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -63,7 +64,12 @@ async fn mv(data: web::Data<Config>, state: web::Json<game::State>) -> web::Json
     );
 
     let state = state.into_inner();
-    let heuristic = heuristic::Heuristic { state: state.clone() };
+    let heuristic = heuristic::Heuristic {
+        state: state.clone(),
+    };
+
+    let mc = monte_carlo::MonteCarlo::new(&state);
+    println!("{:?}", mc);
 
     let command = heuristic
         .decide(data.hunger_coefficient)
