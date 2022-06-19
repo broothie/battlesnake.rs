@@ -62,10 +62,7 @@ impl State {
         });
 
         moves = self.process("threatened", moves, |point| !self.threatened(&point));
-
-        if self.game.ruleset.name == "royale" {
-            moves = self.process("hazards", moves, |point| !self.board.hazard_at(&point));
-        }
+        moves = self.process("hazards", moves, |point| !self.board.hazard_at(&point));
 
         let pocket_sizes = self.board.pocket_sizes();
         let largest = moves
